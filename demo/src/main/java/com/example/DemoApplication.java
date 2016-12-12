@@ -1,5 +1,6 @@
 package com.example;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,11 @@ public class DemoApplication {
 	public Greeting defaultGreeting() {
 		return new Greeting("Default greeting");
 	}
+
+	@Bean
+	public Greeting alternativeGreeting() {
+		return new Greeting("Alternative greeting");
+	}
 }
 
 @RestController
@@ -24,7 +30,7 @@ class Hello {
 
 	private Greeting greeting;
 
-	public Hello(Greeting greeting) {
+	public Hello(@Qualifier("defaultGreeting") Greeting greeting) {
 		this.greeting = greeting;
 	}
 
@@ -39,7 +45,7 @@ class Hello2 {
 
 	private Greeting greeting;
 
-	public Hello2(Greeting greeting) {
+	public Hello2(@Qualifier("alternativeGreeting") Greeting greeting) {
 		this.greeting = greeting;
 	}
 
