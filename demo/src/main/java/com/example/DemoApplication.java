@@ -1,11 +1,11 @@
 package com.example;
 
 import javax.annotation.PostConstruct;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -13,7 +13,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,10 +35,9 @@ public class DemoApplication {
 	}
 }
 
+@Slf4j
 @Component
 class BeanLoggingPostProcessor implements BeanPostProcessor {
-
-	private static final Logger log = LoggerFactory.getLogger(BeanLoggingPostProcessor.class);
 
 	private final AtomicInteger counter = new AtomicInteger(0);
 
@@ -87,22 +85,15 @@ class Hello2 {
 
 //@Component
 //@Scope("prototype")
+@Slf4j
+@AllArgsConstructor
+@Data
 class Greeting {
-
-	private static final Logger log = LoggerFactory.getLogger(Greeting.class);
 
 	private String message;
 
 	Greeting() {
 		this.message = "Injected hello!";
-	}
-
-	Greeting(String message) {
-		this.message = message;
-	}
-
-	public String getMessage() {
-		return message;
 	}
 
 	@PostConstruct
