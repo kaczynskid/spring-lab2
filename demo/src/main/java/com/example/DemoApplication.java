@@ -34,6 +34,21 @@ class Hello {
 	}
 }
 
+@RestController
+class Hello2 {
+
+	private Greeting greeting;
+
+	public Hello2(Greeting greeting) {
+		this.greeting = greeting;
+	}
+
+	@GetMapping("/hello2")
+	Greeting say() {
+		return greeting;
+	}
+}
+
 class Greeting {
 
 	private String message;
