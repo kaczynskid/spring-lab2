@@ -1,31 +1,38 @@
 package com.greeting;
 
-import javax.annotation.PostConstruct;
-
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.env.Environment;
 
 @Configuration
+@EnableConfigurationProperties(GreetingProps.class)
 public class GreetingConfig {
 
 	@Autowired
-	Environment environment;
+	GreetingProps props;
 
 	@Bean
 	@Primary
 	public Greeting defaultGreeting() {
-		return new Greeting(environment.getProperty("greeting.default-msg"));
+		return new Greeting(props.getDefaultMsg());
 	}
 
 	@Bean
 	public Greeting alternativeGreeting() {
-		return new Greeting(environment.getProperty("greeting.alternative-msg"));
+		return new Greeting(props.getAlternativeMsg());
 	}
+}
+
+@Data
+@ConfigurationProperties(prefix = "greeting")
+class GreetingProps {
+
+	private String defaultMsg;
+
+	private String alternativeMsg;
 }
 
