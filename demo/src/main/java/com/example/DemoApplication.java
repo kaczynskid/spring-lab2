@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,7 +15,7 @@ public class DemoApplication {
 		SpringApplication.run(DemoApplication.class, args);
 	}
 
-	@Bean
+	@Bean @Primary
 	public Greeting defaultGreeting() {
 		return new Greeting("Default greeting");
 	}
@@ -30,7 +31,7 @@ class Hello {
 
 	private Greeting greeting;
 
-	public Hello(@Qualifier("defaultGreeting") Greeting greeting) {
+	public Hello(Greeting greeting) {
 		this.greeting = greeting;
 	}
 
