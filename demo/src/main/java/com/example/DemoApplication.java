@@ -18,7 +18,7 @@ class Hello {
 
 	@GetMapping("/hello")
 	Greeting say() {
-		return new Greeting("Hello world!");
+		return new Greeting("Hello world changed!");
 	}
 }
 
