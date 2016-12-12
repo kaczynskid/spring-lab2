@@ -2,7 +2,7 @@ package com.example;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,7 +13,10 @@ public class DemoApplication {
 		SpringApplication.run(DemoApplication.class, args);
 	}
 
-
+	@Bean
+	public Greeting defaultGreeting() {
+		return new Greeting("Default greeting");
+	}
 }
 
 @RestController
@@ -31,7 +34,6 @@ class Hello {
 	}
 }
 
-@Component
 class Greeting {
 
 	private String message;
