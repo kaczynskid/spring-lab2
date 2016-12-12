@@ -2,6 +2,7 @@ package com.greeting;
 
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +19,10 @@ public class GreetingConfig {
 
 	@Bean
 	@Primary
+	@ConditionalOnProperty(
+		name = "greeting.default-msg.enabled",
+		havingValue = "true", matchIfMissing = true
+	)
 	public Greeting defaultGreeting() {
 		return new Greeting(props.getDefaultMsg());
 	}
