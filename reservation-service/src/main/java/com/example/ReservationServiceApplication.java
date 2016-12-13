@@ -1,7 +1,7 @@
 package com.example;
 
 import static org.springframework.http.HttpStatus.*;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.MediaType.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -16,9 +16,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -93,8 +94,30 @@ class ReservationController {
 	}
 }
 
-@Component
-class ReservationsService {
+@Configuration
+class ReservationsServiceConfig {
+
+	@Bean
+	public ReservationsService reservationsService() {
+		return new ReservationsServiceImpl();
+	}
+
+}
+
+interface ReservationsService {
+
+	List<Reservation> findAll();
+
+	Optional<Reservation> maybeFindById(int id);
+
+	void create(Reservation reservation);
+
+	void update(Reservation reservation);
+
+	void delete(int id);
+}
+
+class ReservationsServiceImpl implements ReservationsService {
 
 	private final AtomicInteger seq = new AtomicInteger(0);
 
@@ -106,11 +129,11 @@ class ReservationsService {
 			.map(entry -> new Reservation(seq.incrementAndGet(), entry[0], entry[1]))
 			.collect(Collectors.toList());
 
-	List<Reservation> findAll() {
+	public List<Reservation> findAll() {
 		return reservations;
 	}
 
-	Optional<Reservation> maybeFindById(int id) {
+	public Optional<Reservation> maybeFindById(int id) {
 		return reservations.stream()
 				.filter(r -> r.getId() == id)
 				.findFirst();
@@ -122,7 +145,7 @@ class ReservationsService {
 				.findFirst();
 	}
 
-	void create(Reservation reservation) {
+	public void create(Reservation reservation) {
 		if (maybeFindByName(reservation.getName())
 				.isPresent()) {
 			throw new NameNotUnique(reservation.getName());
@@ -134,7 +157,7 @@ class ReservationsService {
 		));
 	}
 
-	void update(Reservation reservation) {
+	public void update(Reservation reservation) {
 		Optional<Reservation> existing = maybeFindById(reservation.getId());
 		if (!existing.isPresent()) {
 			throw new NotFound(reservation.getId());
@@ -152,7 +175,7 @@ class ReservationsService {
 				});
 	}
 
-	void delete(int id) {
+	public void delete(int id) {
 		Optional<Reservation> reservation = maybeFindById(id);
 		if (reservation.isPresent()) {
 			reservations.remove(reservation.get());
