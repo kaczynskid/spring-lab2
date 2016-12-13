@@ -29,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -241,6 +242,61 @@ class NameNotUnique extends RuntimeException {
 
 	NameNotUnique(String name) {
 		super("Reservation for '" + name + "' already exists!");
+	}
+}
+
+interface ReservationsRepository {
+
+	List<Reservation> findAll();
+
+	Reservation findOne(int id);
+
+	Reservation findByName(String name);
+
+	void create(Reservation reservation);
+
+	void update(Reservation reservation);
+
+	void delete(int id);
+}
+
+@Component
+class ReservationsRepositoryImpl implements ReservationsRepository {
+
+	private final JdbcTemplate jdbc;
+
+	public ReservationsRepositoryImpl(JdbcTemplate jdbc) {
+		this.jdbc = jdbc;
+	}
+
+	@Override
+	public List<Reservation> findAll() {
+		return null;
+	}
+
+	@Override
+	public Reservation findOne(int id) {
+		return null;
+	}
+
+	@Override
+	public Reservation findByName(String name) {
+		return null;
+	}
+
+	@Override
+	public void create(Reservation reservation) {
+
+	}
+
+	@Override
+	public void update(Reservation reservation) {
+
+	}
+
+	@Override
+	public void delete(int id) {
+
 	}
 }
 
