@@ -2,24 +2,22 @@ package com.example;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.greeting.GreetingConfig;
 import com.hello.Hello;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Component;
 
 @SpringBootApplication(scanBasePackageClasses = {
 	DemoApplication.class, Hello.class
 })
-@Import(GreetingConfig.class)
 public class DemoApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(DemoApplication.class, args);
+		SpringApplication app = new SpringApplication(DemoApplication.class);
+		app.run(args);
 	}
 }
 
