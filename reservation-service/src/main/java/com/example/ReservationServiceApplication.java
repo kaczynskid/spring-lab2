@@ -1,6 +1,7 @@
 package com.example;
 
 import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -47,12 +48,12 @@ class ReservationController {
 		this.reservations = reservations;
 	}
 
-	@GetMapping
+	@GetMapping(produces = APPLICATION_JSON_VALUE)
 	public List<Reservation> findAll() {
 		return reservations.findAll();
 	}
 
-	@GetMapping("/{id}")
+	@GetMapping(path = "/{id}", produces = APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> findOne(@PathVariable("id") int id) {
 		Optional<Reservation> reservation = reservations.maybeFindById(id);
 		if (reservation.isPresent()) {
@@ -62,13 +63,13 @@ class ReservationController {
 		}
 	}
 
-	@PostMapping
+	@PostMapping(consumes = APPLICATION_JSON_VALUE)
 	@ResponseStatus(CREATED)
 	public void create(@RequestBody Reservation reservation) {
 		reservations.create(reservation);
 	}
 
-	@PutMapping("/{id}")
+	@PutMapping(path = "/{id}", consumes = APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> update(@PathVariable("id") int id, @RequestBody Reservation reservation) {
 		reservation.setId(id);
 		reservations.update(reservation);
