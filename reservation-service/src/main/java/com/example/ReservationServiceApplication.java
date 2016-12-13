@@ -17,6 +17,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,24 +41,20 @@ public class ReservationServiceApplication {
 @RequestMapping("/reservations")
 class ReservationController {
 
-	private final AtomicInteger seq = new AtomicInteger(0);
+	private final ReservationsService reservations;
 
-	List<Reservation> reservations = Stream.of(
-			"Wojtek:Java", "Tomasz:Java", "Piotrek:OracleForms",
-			"Robert:PLSQL", "Wiktor:PLSQL", "Grzegorz:Delphi", "Jacek:Delphi",
-			"Tomek:PLSQL", "Szymek:PLSQL", "Jacek2:PLSQL", "Grzesiek:PLSQL")
-			.map(entry -> entry.split(":"))
-			.map(entry -> new Reservation(seq.incrementAndGet(), entry[0], entry[1]))
-			.collect(Collectors.toList());
+	public ReservationController(ReservationsService reservations) {
+		this.reservations = reservations;
+	}
 
 	@GetMapping
 	public List<Reservation> findAll() {
-		return reservations;
+		return reservations.findAll();
 	}
 
 	@GetMapping("/{id}")
 	public ResponseEntity<?> findOne(@PathVariable("id") int id) {
-		Optional<Reservation> reservation = maybeFindById(id);
+		Optional<Reservation> reservation = reservations.maybeFindById(id);
 		if (reservation.isPresent()) {
 			return ResponseEntity.ok(reservation.get());
 		} else {
@@ -68,47 +65,51 @@ class ReservationController {
 	@PostMapping
 	@ResponseStatus(CREATED)
 	public void create(@RequestBody Reservation reservation) {
-		if (maybeFindByName(reservation.getName())
-				.isPresent()) {
-			throw new NameNotUnique(reservation.getName());
-		}
-		reservations.add(new Reservation(
-				seq.incrementAndGet(),
-				reservation.getName(),
-				reservation.getLang()
-		));
+		reservations.create(reservation);
 	}
 
 	@PutMapping("/{id}")
 	public ResponseEntity<?> update(@PathVariable("id") int id, @RequestBody Reservation reservation) {
-		Optional<Reservation> existing = maybeFindById(id);
-		if (!existing.isPresent()) {
-			return ResponseEntity.notFound().build();
-		}
-		if (maybeFindByName(reservation.getName())
-				.filter(r -> r.getId() != id)
-				.isPresent()) {
-			throw new NameNotUnique(reservation.getName());
-		}
-		existing
-			.map(r -> {
-				r.setName(reservation.getName());
-				r.setLang(reservation.getLang());
-				return r;
-			});
+		reservation.setId(id);
+		reservations.update(reservation);
 		return ResponseEntity.accepted().build();
 	}
 
 	@DeleteMapping("/{id}")
 	@ResponseStatus(NO_CONTENT)
 	public void delete(@PathVariable("id") int id) {
-		Optional<Reservation> reservation = maybeFindById(id);
-		if (reservation.isPresent()) {
-			reservations.remove(reservation.get());
-		}
+		reservations.delete(id);
 	}
 
-	private Optional<Reservation> maybeFindById(int id) {
+	@ExceptionHandler(NotFound.class)
+	public void handleNotFound(NotFound ex, HttpServletResponse response) throws IOException {
+		response.sendError(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+	}
+
+	@ExceptionHandler(NameNotUnique.class)
+	public void handleNameNotUnique(NameNotUnique ex, HttpServletResponse response) throws IOException {
+		response.sendError(HttpStatus.CONFLICT.value(), ex.getMessage());
+	}
+}
+
+@Component
+class ReservationsService {
+
+	private final AtomicInteger seq = new AtomicInteger(0);
+
+	List<Reservation> reservations = Stream.of(
+			"Wojtek:Java", "Tomasz:Java", "Piotrek:OracleForms",
+			"Robert:PLSQL", "Wiktor:PLSQL", "Grzegorz:Delphi", "Jacek:Delphi",
+			"Tomek:PLSQL", "Szymek:PLSQL", "Jacek2:PLSQL", "Grzesiek:PLSQL")
+			.map(entry -> entry.split(":"))
+			.map(entry -> new Reservation(seq.incrementAndGet(), entry[0], entry[1]))
+			.collect(Collectors.toList());
+
+	List<Reservation> findAll() {
+		return reservations;
+	}
+
+	Optional<Reservation> maybeFindById(int id) {
 		return reservations.stream()
 				.filter(r -> r.getId() == id)
 				.findFirst();
@@ -120,9 +121,48 @@ class ReservationController {
 				.findFirst();
 	}
 
-	@ExceptionHandler(NameNotUnique.class)
-	public void handleNameNotUnique(NameNotUnique ex, HttpServletResponse response) throws IOException {
-		response.sendError(HttpStatus.CONFLICT.value(), ex.getMessage());
+	void create(Reservation reservation) {
+		if (maybeFindByName(reservation.getName())
+				.isPresent()) {
+			throw new NameNotUnique(reservation.getName());
+		}
+		reservations.add(new Reservation(
+				seq.incrementAndGet(),
+				reservation.getName(),
+				reservation.getLang()
+		));
+	}
+
+	void update(Reservation reservation) {
+		Optional<Reservation> existing = maybeFindById(reservation.getId());
+		if (!existing.isPresent()) {
+			throw new NotFound(reservation.getId());
+		}
+		if (maybeFindByName(reservation.getName())
+				.filter(r -> r.getId() != reservation.getId())
+				.isPresent()) {
+			throw new NameNotUnique(reservation.getName());
+		}
+		existing
+				.map(r -> {
+					r.setName(reservation.getName());
+					r.setLang(reservation.getLang());
+					return r;
+				});
+	}
+
+	void delete(int id) {
+		Optional<Reservation> reservation = maybeFindById(id);
+		if (reservation.isPresent()) {
+			reservations.remove(reservation.get());
+		}
+	}
+}
+
+class NotFound extends RuntimeException {
+
+	NotFound(int id) {
+		super("No reservation found for id '" + id + "'!");
 	}
 }
 
