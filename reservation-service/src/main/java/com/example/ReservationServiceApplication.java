@@ -1,15 +1,26 @@
 package com.example;
 
+import static org.springframework.http.HttpStatus.*;
+
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
@@ -28,7 +39,7 @@ class ReservationController {
 
 	List<Reservation> reservations = Stream.of(
 			"Wojtek:Java", "Tomasz:Java", "Piotrek:OracleForms",
-			"Robert:PLSQL", "Wiktor:PLSQL", "Grzesiek:Delphi", "Jacek:Delphi",
+			"Robert:PLSQL", "Wiktor:PLSQL", "Grzegorz:Delphi", "Jacek:Delphi",
 			"Tomek:PLSQL", "Szymek:PLSQL", "Jacek:PLSQL", "Grzesiek:PLSQL")
 			.map(entry -> entry.split(":"))
 			.map(entry -> new Reservation(seq.incrementAndGet(), entry[0], entry[1]))
@@ -39,24 +50,51 @@ class ReservationController {
 		return reservations;
 	}
 
-	public Reservation findOne(int id) {
-		return null;
+	@GetMapping("/{id}")
+	public Reservation findOne(@PathVariable("id") int id) {
+		return maybeFindOne(id).orElse(null);
 	}
 
-	public void create(Reservation reservation) {
-
+	@PostMapping
+	@ResponseStatus(CREATED)
+	public void create(@RequestBody Reservation reservation) {
+		reservations.add(new Reservation(
+				seq.incrementAndGet(),
+				reservation.getName(),
+				reservation.getLang()
+		));
 	}
 
-	public void update(int id, Reservation reservation) {
-
+	@PutMapping("/{id}")
+	@ResponseStatus(ACCEPTED)
+	public void update(@PathVariable("id") int id, @RequestBody Reservation reservation) {
+		maybeFindOne(id)
+				.map(r -> {
+					r.setName(reservation.getName());
+					r.setLang(reservation.getLang());
+					return r;
+				});
 	}
 
-	public void delete(int id) {
+	@DeleteMapping("/{id}")
+	@ResponseStatus(NO_CONTENT)
+	public void delete(@PathVariable("id") int id) {
+		Optional<Reservation> reservation = maybeFindOne(id);
+		if (reservation.isPresent()) {
+			reservations.remove(reservation.get());
+		}
+	}
 
+	private Optional<Reservation> maybeFindOne(int id) {
+		return reservations.stream()
+				.filter(r -> r.getId() == id)
+				.findFirst();
 	}
 }
 
-@Value
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 class Reservation {
 
 	private int id;
