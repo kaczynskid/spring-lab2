@@ -58,7 +58,7 @@ public class ReservationServiceApplication {
 }
 
 @RestController
-@RequestMapping("/reservations")
+@RequestMapping("/custom-reservations")
 class ReservationController {
 
 	private final ReservationsService reservations;
