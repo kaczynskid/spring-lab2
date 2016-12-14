@@ -85,6 +85,16 @@ class ReservationController {
 		}
 	}
 
+	@GetMapping(path = "/byName/{name}", produces = APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> findOne(@PathVariable("name") String name) {
+		Optional<Reservation> reservation = reservations.maybeFindByName(name);
+		if (reservation.isPresent()) {
+			return ResponseEntity.ok(reservation.get());
+		} else {
+			return ResponseEntity.notFound().build();
+		}
+	}
+
 	@PostMapping(consumes = APPLICATION_JSON_VALUE)
 	@ResponseStatus(CREATED)
 	public void create(@RequestBody Reservation reservation) {
@@ -184,6 +194,9 @@ interface ReservationsService {
 	@Transactional(propagation = SUPPORTS, readOnly = true)
 	Optional<Reservation> maybeFindById(int id);
 
+	@Transactional(propagation = SUPPORTS, readOnly = true)
+	Optional<Reservation> maybeFindByName(String name);
+
 	void create(Reservation reservation);
 
 	void update(Reservation reservation);
@@ -211,7 +224,7 @@ class ReservationsServiceImpl implements ReservationsService {
 		return Optional.ofNullable(reservations.findOne(id));
 	}
 
-	private Optional<Reservation> maybeFindByName(String name) {
+	public Optional<Reservation> maybeFindByName(String name) {
 		return Optional.ofNullable(reservations.findByName(name));
 	}
 

@@ -10,8 +10,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.querydsl.QueryDslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 
-public interface ReservationsRepository
-		extends JpaRepository<Reservation, Integer>, QueryDslPredicateExecutor<Reservation> {
+public interface ReservationsRepository extends
+		JpaRepository<Reservation, Integer>,
+		QueryDslPredicateExecutor<Reservation>,
+		LegacyReservationsRepository{
 
 	interface Spec {
 
@@ -23,8 +25,6 @@ public interface ReservationsRepository
 			return name == null ? null : reservation.name.eq(name);
 		}
 	}
-
-	Reservation findByName(String name);
 
 	@Query("from Reservation where lang = :lang")
 	List<Reservation> findByLang(@Param("lang") String lang);
