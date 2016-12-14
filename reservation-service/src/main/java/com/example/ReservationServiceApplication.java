@@ -1,17 +1,10 @@
 package com.example;
 
-import static javax.persistence.GenerationType.*;
+import static com.example.ReservationsRepository.Spec.*;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.*;
 import static org.springframework.transaction.annotation.Propagation.*;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
@@ -22,9 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.querydsl.core.BooleanBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -38,10 +29,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -78,11 +66,10 @@ class ReservationController {
 	}
 
 	@GetMapping(produces = APPLICATION_JSON_VALUE)
-	public List<Reservation> findAll(@RequestParam(name = "lang", required = false) String lang) {
-		if (lang != null) {
-			return reservations.findByLang(lang);
-		}
-		return reservations.findAll();
+	public List<Reservation> findAll(
+			@RequestParam(name = "name", required = false) String name,
+			@RequestParam(name = "lang", required = false) String lang) {
+		return reservations.findAll(name, lang);
 	}
 
 	@GetMapping(path = "/{id}", produces = APPLICATION_JSON_VALUE)
@@ -189,10 +176,7 @@ class MonitorAspect {
 interface ReservationsService {
 
 	@Transactional(propagation = SUPPORTS, readOnly = true)
-	List<Reservation> findAll();
-
-	@Transactional(propagation = SUPPORTS, readOnly = true)
-	List<Reservation> findByLang(String lang);
+	List<Reservation> findAll(String name, String lang);
 
 	@Transactional(propagation = SUPPORTS, readOnly = true)
 	Optional<Reservation> maybeFindById(int id);
@@ -213,13 +197,10 @@ class ReservationsServiceImpl implements ReservationsService {
 	}
 
 	@Override
-	public List<Reservation> findAll() {
-		return reservations.findAll();
-	}
-
-	@Override
-	public List<Reservation> findByLang(String lang) {
-		return reservations.findByLang(lang);
+	public List<Reservation> findAll(String name, String lang) {
+		return reservations.findAll(new BooleanBuilder()
+				.and(withName(name))
+				.and(withLang(lang)));
 	}
 
 	public Optional<Reservation> maybeFindById(int id) {
@@ -299,33 +280,3 @@ class ReservationsInitializer implements ApplicationRunner {
 	}
 }
 
-interface ReservationsRepository extends JpaRepository<Reservation, Integer> {
-
-	Reservation findByName(String name);
-
-	@Query("from Reservation where lang = :lang")
-	List<Reservation> findByLang(@Param("lang") String lang);
-}
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"name"}))
-class Reservation {
-
-	@Id
-	@GeneratedValue(strategy = SEQUENCE, generator = "reservation_seq")
-	@SequenceGenerator(name = "reservation_seq", sequenceName = "reservation_seq")
-	private Integer id;
-
-	@Column(nullable = false)
-	private String name;
-
-	@Column(nullable = false)
-	private String lang;
-
-	public Reservation(String name, String lang) {
-		this(null, name, lang);
-	}
-}
