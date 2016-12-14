@@ -1,15 +1,25 @@
 package com.example;
 
+import static javax.persistence.GenerationType.*;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.*;
 import static org.springframework.transaction.annotation.Propagation.*;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EntityManager;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.PersistenceContext;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.sql.ResultSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -32,8 +42,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
@@ -108,6 +116,17 @@ class ReservationController {
 	@ExceptionHandler(NameNotUnique.class)
 	public void handleNameNotUnique(NameNotUnique ex, HttpServletResponse response) throws IOException {
 		response.sendError(HttpStatus.CONFLICT.value(), ex.getMessage());
+	}
+
+	@ExceptionHandler(InvocationTargetException.class)
+	public void handleInvocationException(InvocationTargetException ex, HttpServletResponse response) throws IOException {
+		if (ex.getTargetException() instanceof NameNotUnique) {
+			handleNameNotUnique((NameNotUnique) ex.getTargetException(), response);
+		} else if (ex.getTargetException() instanceof NotFound) {
+			handleNotFound((NotFound) ex.getTargetException(), response);
+		} else {
+			response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(), ex.getMessage());
+		}
 	}
 }
 
@@ -214,7 +233,13 @@ class ReservationsServiceImpl implements ReservationsService {
 				.isPresent()) {
 			throw new NameNotUnique(reservation.getName());
 		}
-		reservations.update(reservation);
+		existing.map(r -> {
+			r.setName(reservation.getName());
+			r.setLang(reservation.getLang());
+			reservations.update(r);
+			return r;
+		});
+
 	}
 
 	public void delete(int id) {
@@ -246,6 +271,7 @@ class ReservationsInitializer implements ApplicationRunner {
 	}
 
 	@Override
+	@Transactional
 	public void run(ApplicationArguments args) throws Exception {
 		Stream.of(
 			"Wojtek:Java", "Tomasz:Java", "Piotrek:OracleForms",
@@ -276,74 +302,62 @@ interface ReservationsRepository {
 @Component
 class ReservationsRepositoryImpl implements ReservationsRepository {
 
-	private final RowMapper<Reservation> mapper = (ResultSet rs, int rowNum) -> {
-		return new Reservation(
-				rs.getInt("id"),
-				rs.getString("name"),
-				rs.getString("lang")
-		);
-	};
-
-	private final JdbcTemplate jdbc;
-
-	public ReservationsRepositoryImpl(JdbcTemplate jdbc) {
-		this.jdbc = jdbc;
-	}
+	@PersistenceContext
+	EntityManager jpa;
 
 	@Override
 	public List<Reservation> findAll() {
-		return jdbc.query(
-				"select * from reservations",
-				mapper);
+		return jpa.createQuery("from Reservation", Reservation.class)
+				.getResultList();
 	}
 
 	@Override
 	public Reservation findOne(int id) {
-		return jdbc.query(
-				"select * from reservations r where r.id = ?",
-				new Object[] { id },
-				mapper).stream().findFirst().orElse(null);
+		return jpa.find(Reservation.class, id);
 	}
 
 	@Override
 	public Reservation findByName(String name) {
-		return jdbc.query(
-				"select * from reservations r where r.name = ?",
-				new Object[] { name },
-				mapper).stream().findFirst().orElse(null);
+		return jpa.createQuery("from Reservation where name = :name", Reservation.class)
+				.setParameter("name", name)
+				.getResultList().stream().findFirst().orElse(null);
 	}
 
 	@Override
 	public void create(Reservation reservation) {
-		jdbc.update(
-				"insert into reservations(name, lang) values(?, ?)",
-				reservation.getName(), reservation.getLang());
+		jpa.persist(reservation);
 	}
 
 	@Override
 	public void update(Reservation reservation) {
-		jdbc.update(
-				"update reservations set name=?, lang=? where id=?",
-				reservation.getName(), reservation.getLang(), reservation.getId());
+		jpa.persist(reservation);
 	}
 
 	@Override
 	public void delete(int id) {
-		jdbc.update(
-				"delete from reservations where id=?",
-				id);
+		Reservation existing = findOne(id);
+		if (existing != null) {
+			jpa.remove(existing);
+		}
 	}
 }
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"name"}))
 class Reservation {
 
+	@Id
+	@GeneratedValue(strategy = SEQUENCE, generator = "reservation_seq")
+	@SequenceGenerator(name = "reservation_seq", sequenceName = "reservation_seq")
 	private Integer id;
 
+	@Column(nullable = false)
 	private String name;
 
+	@Column(nullable = false)
 	private String lang;
 
 	public Reservation(String name, String lang) {
