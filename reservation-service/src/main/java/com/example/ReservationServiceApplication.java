@@ -39,7 +39,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -53,6 +55,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -75,7 +78,10 @@ class ReservationController {
 	}
 
 	@GetMapping(produces = APPLICATION_JSON_VALUE)
-	public List<Reservation> findAll() {
+	public List<Reservation> findAll(@RequestParam(name = "lang", required = false) String lang) {
+		if (lang != null) {
+			return reservations.findByLang(lang);
+		}
 		return reservations.findAll();
 	}
 
@@ -186,6 +192,9 @@ interface ReservationsService {
 	List<Reservation> findAll();
 
 	@Transactional(propagation = SUPPORTS, readOnly = true)
+	List<Reservation> findByLang(String lang);
+
+	@Transactional(propagation = SUPPORTS, readOnly = true)
 	Optional<Reservation> maybeFindById(int id);
 
 	void create(Reservation reservation);
@@ -203,8 +212,14 @@ class ReservationsServiceImpl implements ReservationsService {
 		this.reservations = reservations;
 	}
 
+	@Override
 	public List<Reservation> findAll() {
 		return reservations.findAll();
+	}
+
+	@Override
+	public List<Reservation> findByLang(String lang) {
+		return reservations.findByLang(lang);
 	}
 
 	public Optional<Reservation> maybeFindById(int id) {
@@ -287,6 +302,9 @@ class ReservationsInitializer implements ApplicationRunner {
 interface ReservationsRepository extends JpaRepository<Reservation, Integer> {
 
 	Reservation findByName(String name);
+
+	@Query("from Reservation where lang = :lang")
+	List<Reservation> findByLang(@Param("lang") String lang);
 }
 
 @Data
