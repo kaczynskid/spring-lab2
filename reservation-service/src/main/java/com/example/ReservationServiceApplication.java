@@ -29,6 +29,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -66,10 +68,11 @@ class ReservationController {
 	}
 
 	@GetMapping(produces = APPLICATION_JSON_VALUE)
-	public List<Reservation> findAll(
+	public Page<Reservation> findAll(
 			@RequestParam(name = "name", required = false) String name,
-			@RequestParam(name = "lang", required = false) String lang) {
-		return reservations.findAll(name, lang);
+			@RequestParam(name = "lang", required = false) String lang,
+			Pageable pageable) {
+		return reservations.findAll(name, lang, pageable);
 	}
 
 	@GetMapping(path = "/{id}", produces = APPLICATION_JSON_VALUE)
@@ -176,7 +179,7 @@ class MonitorAspect {
 interface ReservationsService {
 
 	@Transactional(propagation = SUPPORTS, readOnly = true)
-	List<Reservation> findAll(String name, String lang);
+	Page<Reservation> findAll(String name, String lang, Pageable pageable);
 
 	@Transactional(propagation = SUPPORTS, readOnly = true)
 	Optional<Reservation> maybeFindById(int id);
@@ -197,10 +200,11 @@ class ReservationsServiceImpl implements ReservationsService {
 	}
 
 	@Override
-	public List<Reservation> findAll(String name, String lang) {
+	public Page<Reservation> findAll(String name, String lang, Pageable pageable) {
 		return reservations.findAll(new BooleanBuilder()
 				.and(withName(name))
-				.and(withLang(lang)));
+				.and(withLang(lang)),
+				pageable);
 	}
 
 	public Optional<Reservation> maybeFindById(int id) {
