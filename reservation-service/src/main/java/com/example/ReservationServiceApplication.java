@@ -2,6 +2,7 @@ package com.example;
 
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.*;
+import static org.springframework.transaction.annotation.Propagation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -34,6 +35,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -158,10 +160,13 @@ class MonitorAspect {
 	}
 }
 
+@Transactional
 interface ReservationsService {
 
+	@Transactional(propagation = SUPPORTS, readOnly = true)
 	List<Reservation> findAll();
 
+	@Transactional(propagation = SUPPORTS, readOnly = true)
 	Optional<Reservation> maybeFindById(int id);
 
 	void create(Reservation reservation);
